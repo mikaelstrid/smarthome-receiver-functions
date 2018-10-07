@@ -1,5 +1,5 @@
+using System;
 using System.IO;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
@@ -12,19 +12,68 @@ namespace Smarthome.Functions.Receivers
     public static class TemperatureHumidityFunction
     {
         [FunctionName("TemperatureHumidity")]
-        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]HttpRequest req, ILogger log)
+        public static IActionResult Run(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)]HttpRequest req,
+            [Table("TemperatureHumidity")]out TemperatureHumidityOutput output,
+            ILogger log)
         {
-            log.LogInformation("C# HTTP trigger function processed a request.");
+            output = null;
 
-            string name = req.Query["name"];
+            string requestBody;
+            try
+            {
+                requestBody = new StreamReader(req.Body).ReadToEnd();
+            }
+            catch (Exception e)
+            {
+                log.LogWarning(e, "Could not read the body of the request");
+                return new BadRequestObjectResult("Could not read the body of the request");
+            }
 
-            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
-            name = name ?? data?.name;
+            TemperatureHumidityInput input;
+            try
+            {
+                input = JsonConvert.DeserializeObject<TemperatureHumidityInput>(requestBody);
+            }
+            catch (Exception e)
+            {
+                log.LogWarning(e, "The received json data ({Json}) could not be parsed", requestBody);
+                return new BadRequestObjectResult("The received json data could not be parsed");
+            }
 
-            return name != null
-                ? (ActionResult)new OkObjectResult($"Hello, {name}")
-                : new BadRequestObjectResult("Please pass a name on the query string or in the request body");
+            if (string.IsNullOrWhiteSpace(input.SensorId))
+            {
+                log.LogWarning("Sensor id missing");
+                return new BadRequestObjectResult("Sensor id missing");
+            }
+
+            var readAt = DateTimeOffset.UtcNow;
+            output = new TemperatureHumidityOutput
+            {
+                PartitionKey = input.SensorId,
+                RowKey = readAt.ToString("yyyyMMddHHmmss"),
+                ReadAt = readAt,
+                Temperature = input.Temperature,
+                Humidity = input.Humidity
+            };
+
+            return new OkResult();
+        }
+
+        private class TemperatureHumidityInput
+        {
+            public string SensorId { get; set; }
+            public float Temperature { get; set; }
+            public float Humidity { get; set; }
+        }
+
+        public class TemperatureHumidityOutput
+        {
+            public string PartitionKey { get; set; }
+            public string RowKey { get; set; }
+            public DateTimeOffset ReadAt { get; set; }
+            public float Temperature { get; set; }
+            public float Humidity { get; set; }
         }
     }
 }
