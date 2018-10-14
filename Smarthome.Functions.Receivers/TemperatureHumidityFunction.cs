@@ -47,12 +47,12 @@ namespace Smarthome.Functions.Receivers
                 return new BadRequestObjectResult("Sensor id missing");
             }
 
-            var readAt = DateTimeOffset.UtcNow;
+            var readAtUtc = DateTimeOffset.UtcNow;
             output = new TemperatureHumidityOutput
             {
                 PartitionKey = input.SensorId,
-                RowKey = $"{DateTime.MaxValue.Ticks - readAt.Ticks:D19}",
-                ReadAt = readAt,
+                RowKey = readAtUtc.Ticks.ToString("D19"),
+                ReadAtUtc = readAtUtc,
                 Temperature = input.Temperature,
                 Humidity = input.Humidity
             };
@@ -63,17 +63,17 @@ namespace Smarthome.Functions.Receivers
         private class TemperatureHumidityInput
         {
             public string SensorId { get; set; }
-            public float Temperature { get; set; }
-            public float Humidity { get; set; }
+            public double Temperature { get; set; }
+            public double Humidity { get; set; }
         }
 
         public class TemperatureHumidityOutput
         {
             public string PartitionKey { get; set; }
             public string RowKey { get; set; }
-            public DateTimeOffset ReadAt { get; set; }
-            public float Temperature { get; set; }
-            public float Humidity { get; set; }
+            public DateTimeOffset ReadAtUtc { get; set; }
+            public double Temperature { get; set; }
+            public double Humidity { get; set; }
         }
     }
 }
