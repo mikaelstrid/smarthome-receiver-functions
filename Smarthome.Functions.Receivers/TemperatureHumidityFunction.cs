@@ -1,11 +1,13 @@
-using System;
-using System.IO;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.AspNetCore.Http;
+using Microsoft.Azure.WebJobs.Extensions.SignalRService;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Smarthome.Functions.Receivers.Models;
+using System;
+using System.IO;
 
 namespace Smarthome.Functions.Receivers
 {
@@ -14,7 +16,8 @@ namespace Smarthome.Functions.Receivers
         [FunctionName("TemperatureHumidity")]
         public static IActionResult Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)]HttpRequest req,
-            [Table("TemperatureHumidity")]out TemperatureHumidityOutput output,
+            [Table("TemperatureHumidity")]out TemperatureHumidityReading output,
+            [SignalR(HubName = "climate")] IAsyncCollector<SignalRMessage> signalRMessages,
             ILogger log)
         {
             output = null;
@@ -48,7 +51,7 @@ namespace Smarthome.Functions.Receivers
             }
 
             var readAtUtc = DateTimeOffset.UtcNow;
-            output = new TemperatureHumidityOutput
+            output = new TemperatureHumidityReading
             {
                 PartitionKey = input.SensorId,
                 RowKey = readAtUtc.Ticks.ToString("D19"),
@@ -57,21 +60,27 @@ namespace Smarthome.Functions.Receivers
                 Humidity = input.Humidity
             };
 
+            signalRMessages.AddAsync(
+                new SignalRMessage
+                {
+                    Target = "update-temperature-humidity",
+                    Arguments = new object[] { input.SensorId, readAtUtc, input.Temperature, input.Humidity }
+                }).Wait();
+
             return new OkResult();
+        }
+        
+        [FunctionName("negotiate")]
+        public static SignalRConnectionInfo GetSignalRInfo(
+            [HttpTrigger(AuthorizationLevel.Anonymous)] HttpRequest req,
+            [SignalRConnectionInfo(HubName = "climate")] SignalRConnectionInfo connectionInfo)
+        {
+            return connectionInfo;
         }
 
         private class TemperatureHumidityInput
         {
             public string SensorId { get; set; }
-            public double Temperature { get; set; }
-            public double Humidity { get; set; }
-        }
-
-        public class TemperatureHumidityOutput
-        {
-            public string PartitionKey { get; set; }
-            public string RowKey { get; set; }
-            public DateTimeOffset ReadAtUtc { get; set; }
             public double Temperature { get; set; }
             public double Humidity { get; set; }
         }
