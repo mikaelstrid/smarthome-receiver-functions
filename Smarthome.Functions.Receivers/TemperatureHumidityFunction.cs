@@ -20,6 +20,8 @@ namespace Smarthome.Functions.Receivers
             [SignalR(HubName = "climate")] IAsyncCollector<SignalRMessage> signalRMessages,
             ILogger log)
         {
+            FixCorsHeaders(req);
+
             output = null;
 
             string requestBody;
@@ -64,18 +66,53 @@ namespace Smarthome.Functions.Receivers
                 new SignalRMessage
                 {
                     Target = "update-temperature-humidity",
-                    Arguments = new object[] { input.SensorId, readAtUtc, input.Temperature, input.Humidity }
+                    Arguments = new object[] { new
+                        {
+                            sensorId = input.SensorId,
+                            readAtUtc,
+                            temperature = input.Temperature,
+                            humidity = input.Humidity
+                        }
+                    }
                 }).Wait();
 
             return new OkResult();
         }
-        
+
         [FunctionName("negotiate")]
-        public static SignalRConnectionInfo GetSignalRInfo(
-            [HttpTrigger(AuthorizationLevel.Anonymous)] HttpRequest req,
-            [SignalRConnectionInfo(HubName = "climate")] SignalRConnectionInfo connectionInfo)
+        public static IActionResult GetSignalRInfo(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "GET", "POST", "OPTIONS")]HttpRequest req,
+            [SignalRConnectionInfo(HubName = "climate")]SignalRConnectionInfo connectionInfo)
         {
-            return connectionInfo;
+            FixCorsHeaders(req);
+            return new OkObjectResult(connectionInfo);
+        }
+
+        private static void FixCorsHeaders(HttpRequest req)
+        {
+            // Azure function doesn't support CORS well, workaround it by explicitly return CORS headers
+            if (req.Headers["Origin"].Count > 0)
+            {
+                if (req.HttpContext.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
+                {
+                    req.HttpContext.Response.Headers.Remove("Access-Control-Allow-Origin");
+                }
+
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", req.Headers["Origin"][0]);
+            }
+
+            if (req.Headers["Access-Control-Request-Headers"].Count > 0)
+            {
+                if (req.HttpContext.Response.Headers.ContainsKey("Access-Control-Allow-Headers"))
+                {
+                    req.HttpContext.Response.Headers.Remove("Access-Control-Allow-Headers");
+                }
+
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers",
+                    req.Headers["access-control-request-headers"][0]);
+            }
+
+            req.HttpContext.Response.Headers.Add("Access-Control-Allow-Credentials", "true");
         }
 
         private class TemperatureHumidityInput
