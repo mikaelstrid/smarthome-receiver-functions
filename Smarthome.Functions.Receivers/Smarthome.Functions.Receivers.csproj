@@ -4,8 +4,13 @@
     <AzureFunctionsVersion>v2</AzureFunctionsVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.Storage" Version="3.0.0" />
-    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.22" />
+    <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.Storage" Version="3.0.1" />
+    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.23" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.Azure.WebJobs.Extensions.SignalRService">
+      <HintPath>..\Dependencies\Microsoft.Azure.WebJobs.Extensions.SignalRService.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">

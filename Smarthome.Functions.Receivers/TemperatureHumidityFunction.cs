@@ -1,11 +1,13 @@
-using System;
-using System.IO;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.AspNetCore.Http;
+using Microsoft.Azure.WebJobs.Extensions.SignalRService;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Smarthome.Functions.Receivers.Models;
+using System;
+using System.IO;
 
 namespace Smarthome.Functions.Receivers
 {
@@ -14,9 +16,12 @@ namespace Smarthome.Functions.Receivers
         [FunctionName("TemperatureHumidity")]
         public static IActionResult Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)]HttpRequest req,
-            [Table("TemperatureHumidity")]out TemperatureHumidityOutput output,
+            [Table("TemperatureHumidity")]out TemperatureHumidityReading output,
+            [SignalR(HubName = "climate")] IAsyncCollector<SignalRMessage> signalRMessages,
             ILogger log)
         {
+            FixCorsHeaders(req);
+
             output = null;
 
             string requestBody;
@@ -48,7 +53,7 @@ namespace Smarthome.Functions.Receivers
             }
 
             var readAtUtc = DateTimeOffset.UtcNow;
-            output = new TemperatureHumidityOutput
+            output = new TemperatureHumidityReading
             {
                 PartitionKey = input.SensorId,
                 RowKey = readAtUtc.Ticks.ToString("D19"),
@@ -57,21 +62,62 @@ namespace Smarthome.Functions.Receivers
                 Humidity = input.Humidity
             };
 
+            signalRMessages.AddAsync(
+                new SignalRMessage
+                {
+                    Target = "update-temperature-humidity",
+                    Arguments = new object[] { new
+                        {
+                            sensorId = input.SensorId,
+                            readAtUtc,
+                            temperature = input.Temperature,
+                            humidity = input.Humidity
+                        }
+                    }
+                }).Wait();
+
             return new OkResult();
+        }
+
+        [FunctionName("negotiate")]
+        public static IActionResult GetSignalRInfo(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "GET", "POST", "OPTIONS")]HttpRequest req,
+            [SignalRConnectionInfo(HubName = "climate")]SignalRConnectionInfo connectionInfo)
+        {
+            FixCorsHeaders(req);
+            return new OkObjectResult(connectionInfo);
+        }
+
+        private static void FixCorsHeaders(HttpRequest req)
+        {
+            // Azure function doesn't support CORS well, workaround it by explicitly return CORS headers
+            if (req.Headers["Origin"].Count > 0)
+            {
+                if (req.HttpContext.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
+                {
+                    req.HttpContext.Response.Headers.Remove("Access-Control-Allow-Origin");
+                }
+
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", req.Headers["Origin"][0]);
+            }
+
+            if (req.Headers["Access-Control-Request-Headers"].Count > 0)
+            {
+                if (req.HttpContext.Response.Headers.ContainsKey("Access-Control-Allow-Headers"))
+                {
+                    req.HttpContext.Response.Headers.Remove("Access-Control-Allow-Headers");
+                }
+
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers",
+                    req.Headers["access-control-request-headers"][0]);
+            }
+
+            req.HttpContext.Response.Headers.Add("Access-Control-Allow-Credentials", "true");
         }
 
         private class TemperatureHumidityInput
         {
             public string SensorId { get; set; }
-            public double Temperature { get; set; }
-            public double Humidity { get; set; }
-        }
-
-        public class TemperatureHumidityOutput
-        {
-            public string PartitionKey { get; set; }
-            public string RowKey { get; set; }
-            public DateTimeOffset ReadAtUtc { get; set; }
             public double Temperature { get; set; }
             public double Humidity { get; set; }
         }
