@@ -56,7 +56,7 @@ namespace Smarthome.Functions.Receivers
             output = new TemperatureHumidityReading
             {
                 PartitionKey = input.SensorId,
-                RowKey = readAtUtc.Ticks.ToString("D19"),
+                RowKey = $"{DateTimeOffset.MaxValue.Ticks - readAtUtc.Ticks:D19}", //readAtUtc.Ticks.ToString("D19")
                 ReadAtUtc = readAtUtc,
                 Temperature = input.Temperature,
                 Humidity = input.Humidity
