@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using Smarthome.Functions.Receivers.Models;
 using System;
 using System.IO;
+using Smarthome.Functions.Receivers.Utilities;
 
 namespace Smarthome.Functions.Receivers
 {
@@ -69,7 +70,7 @@ namespace Smarthome.Functions.Receivers
                     Arguments = new object[] { new
                         {
                             sensorId = input.SensorId,
-                            readAtUtc,
+                            timestampWest = DateTimeOffsetHelper.ConvertToWest(readAtUtc),
                             temperature = input.Temperature,
                             humidity = input.Humidity
                         }
