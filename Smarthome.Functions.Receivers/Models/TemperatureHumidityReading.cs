@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Smarthome.Functions.Receivers.Models
+namespace SmartHome.Functions.Receivers.Models
 {
     public class TemperatureHumidityReading
     {

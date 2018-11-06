@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace Smarthome.Functions.Receivers.Utilities
+namespace SmartHome.Functions.Receivers.Utilities
 {
     public class DateTimeOffsetHelper
     {

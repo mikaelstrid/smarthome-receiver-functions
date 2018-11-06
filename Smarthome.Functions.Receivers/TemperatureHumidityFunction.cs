@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
@@ -5,12 +7,10 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Extensions.SignalRService;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Smarthome.Functions.Receivers.Models;
-using System;
-using System.IO;
-using Smarthome.Functions.Receivers.Utilities;
+using SmartHome.Functions.Receivers.Models;
+using SmartHome.Functions.Receivers.Utilities;
 
-namespace Smarthome.Functions.Receivers
+namespace SmartHome.Functions.Receivers
 {
     public static class TemperatureHumidityFunction
     {
