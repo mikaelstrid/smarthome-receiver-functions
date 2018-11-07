@@ -10,10 +10,13 @@ namespace SmartHome.Functions.Receivers
     {
         [FunctionName("CurrentWeatherFunction")]
         public static void Run(
-            [TimerTrigger("0 */5 * * * *")]TimerInfo myTimer,
+            [TimerTrigger("0 */10 * * * *")]TimerInfo myTimer,
             [Table("CurrentWeather")]out CurrentWeatherReport output,
             ILogger log)
         {
+
+
+
             log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
             output = null;
         }
