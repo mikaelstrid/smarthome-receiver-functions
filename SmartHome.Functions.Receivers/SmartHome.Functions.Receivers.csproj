@@ -22,7 +22,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Utilities\" />
     <Folder Include="Properties\PublishProfiles\" />
   </ItemGroup>
 </Project>

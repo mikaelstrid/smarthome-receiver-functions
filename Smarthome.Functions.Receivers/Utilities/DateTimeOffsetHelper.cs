@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace SmartHome.Functions.Receivers.Utilities
 {
-    public class DateTimeOffsetHelper
+    public static class DateTimeOffsetHelper
     {
         private static readonly TimeZoneInfo WestTimeZoneInfo = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ?
             TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time") :
